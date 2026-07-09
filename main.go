@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/xuri/excelize/v2"
 	"log"
+	"strconv"
 )
 
 type Navigation struct {
@@ -16,7 +17,9 @@ type Navigation struct {
 }
 
 func main() {
-	file, err := excelize.OpenFile("NavigationPlan/MLGOMES_AD_MLGOMES_COBRANÇA_HONDA_Painel de Navegação_v1.0.xlsx")
+	idNavigationPlan := 1
+
+	file, err := excelize.OpenFile("NavigationPlan/CredAluga_AD_Preventivo_Painel de Navegação_v1.0.xlsx")
 
 	if err != nil {
 		log.Fatal("Houve um erro ao abrir o arquivo: ", err)
@@ -37,26 +40,50 @@ func main() {
 	allow := false
 
 	for i, row := range rows {
+		var navigation Navigation
+
 		for j := 1; j < len(row); j++ {
 			var cell = ""
 
-			if !allow {
-				cell, err = file.GetCellValue("Painel de Navegação", fmt.Sprintf("%s%d", "B", i+1))
-			}			
-
 			if allow {
-				fmt.Print(row[j], "\t")				
+				switch j {
+				case 1:
+					navigation.IdNavigationPlan = idNavigationPlan
+					navigation.Description = row[j]
+				case 2:
+					navigation.IndexValue = row[j]
+				case 3:
+					if row[j] == "-" {
+						navigation.IndexFather = "Null"
+					}
+
+					if row[j] != "-" {
+						navigation.IndexFather = fmt.Sprintf("'%s'", row[j])
+					}
+				case 4:
+					v, _ := strconv.Atoi(row[j])
+					navigation.ItemOrder = v
+				case 5:
+					v, _ := strconv.Atoi(row[j])
+					navigation.DispositionId = v
+				}
 				continue
 			}
 
-			if cell == "Description" {
-				allow = true
+			if !allow {
+				cell, _ = file.GetCellValue("Painel de Navegação", fmt.Sprintf("%s%d", "B", i+1))
+
+				if cell == "Description" {
+					allow = true
+				}
 			}
 
 			break
 		}
 
-		//fmt.Printf("insert into SysConfiguration..NavigationDetail (IdNavigationPlan, IndexValue, Description, Indexfather, ItemOrder, DispositionId) values (%d, '%s', '%s', %s, %d, %d )")		
+		if allow {
+			fmt.Printf("insert into SysConfiguration..NavigationDetail (IdNavigationPlan, IndexValue, Description, Indexfather, ItemOrder, DispositionId) values (%d, '%s', '%s', %s, %d, %d);", navigation.IdNavigationPlan, navigation.IndexValue, navigation.Description, navigation.IndexFather, navigation.ItemOrder, navigation.DispositionId)
+		}
 
 		if allow {
 			fmt.Println()
