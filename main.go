@@ -37,7 +37,9 @@ func main() {
 		log.Fatal("Houve um erro ao carregar as informações do seu arquivo: ", err)
 	}
 
-	allow := false
+	allow := false	
+
+	descriptionIndex := 0
 
 	for i, row := range rows {
 		var navigation Navigation
@@ -45,7 +47,7 @@ func main() {
 		for j := 1; j < len(row); j++ {
 			var cell = ""
 
-			if allow {
+			if allow {				
 				switch j {
 				case 1:
 					navigation.IdNavigationPlan = idNavigationPlan
@@ -74,6 +76,7 @@ func main() {
 				cell, _ = file.GetCellValue("Painel de Navegação", fmt.Sprintf("%s%d", "B", i+1))
 
 				if cell == "Description" {
+					descriptionIndex = i
 					allow = true
 				}
 			}
@@ -81,11 +84,11 @@ func main() {
 			break
 		}
 
-		if allow {
+		if allow && i > descriptionIndex {
 			fmt.Printf("insert into SysConfiguration..NavigationDetail (IdNavigationPlan, IndexValue, Description, Indexfather, ItemOrder, DispositionId) values (%d, '%s', '%s', %s, %d, %d);", navigation.IdNavigationPlan, navigation.IndexValue, navigation.Description, navigation.IndexFather, navigation.ItemOrder, navigation.DispositionId)
 		}
 
-		if allow {
+		if allow && i  > descriptionIndex && i < len(rows) - 1 {
 			fmt.Println()
 		}
 	}
