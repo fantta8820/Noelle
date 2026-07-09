@@ -6,6 +6,15 @@ import (
 	"log"
 )
 
+type Navigation struct {
+	IdNavigationPlan int
+	IndexValue       string
+	Description      string
+	IndexFather      string
+	ItemOrder        int
+	DispositionId    int
+}
+
 func main() {
 	file, err := excelize.OpenFile("NavigationPlan/MLGOMES_AD_MLGOMES_COBRANÇA_HONDA_Painel de Navegação_v1.0.xlsx")
 
@@ -28,15 +37,15 @@ func main() {
 	allow := false
 
 	for i, row := range rows {
-		for _, col := range row {
+		for j := 1; j < len(row); j++ {
 			var cell = ""
 
 			if !allow {
 				cell, err = file.GetCellValue("Painel de Navegação", fmt.Sprintf("%s%d", "B", i+1))
-			}
+			}			
 
 			if allow {
-				fmt.Print(col, "\t")
+				fmt.Print(row[j], "\t")				
 				continue
 			}
 
@@ -46,6 +55,8 @@ func main() {
 
 			break
 		}
+
+		//fmt.Printf("insert into SysConfiguration..NavigationDetail (IdNavigationPlan, IndexValue, Description, Indexfather, ItemOrder, DispositionId) values (%d, '%s', '%s', %s, %d, %d )")		
 
 		if allow {
 			fmt.Println()
