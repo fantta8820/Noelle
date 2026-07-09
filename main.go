@@ -25,10 +25,30 @@ func main() {
 		log.Fatal("Houve um erro ao carregar as informações do seu arquivo: ", err)
 	}
 
-	for _, row := range rows {
+	allow := false
+
+	for i, row := range rows {
 		for _, col := range row {
-			fmt.Print(col, "\t")
+			var cell = ""
+
+			if !allow {
+				cell, err = file.GetCellValue("Painel de Navegação", fmt.Sprintf("%s%d", "B", i+1))
+			}
+
+			if allow {
+				fmt.Print(col, "\t")
+				continue
+			}
+
+			if cell == "Description" {
+				allow = true
+			}
+
+			break
 		}
-		fmt.Println()
+
+		if allow {
+			fmt.Println()
+		}
 	}
 }
