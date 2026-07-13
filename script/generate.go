@@ -1,10 +1,11 @@
 package script
 
 import (
+	"errors"
 	"fmt"
-	"github.com/xuri/excelize/v2"
-	"log"
 	"strconv"
+
+	"github.com/xuri/excelize/v2"
 )
 
 type Navigation struct {
@@ -16,38 +17,42 @@ type Navigation struct {
 	DispositionId    int
 }
 
-func RunScript(path string, idNavigationPlan int) {
-	rows, file := OpenFile(path)
+func RunScript(path string, idNavigationPlan int) (string, error) {
+	rows, file, err := OpenFile(path)
+
+	if err != "" {
+		return "", errors.New(err)
+	}
 
 	allow := false
-	descriptionIndex := 0	
+	descriptionIndex := 0
 
-	GenerateSQL(allow, rows, descriptionIndex, idNavigationPlan, file)
+	return GenerateSQL(allow, rows, descriptionIndex, idNavigationPlan, file), nil
 }
 
-func OpenFile(path string) ([][]string, *excelize.File) {
+func OpenFile(path string) ([][]string, *excelize.File, string) {
 	file, err := excelize.OpenFile(path)
 
 	if err != nil {
-		log.Fatal("Houve um erro ao abrir o arquivo: ", err)
+		return nil, nil, "Houve um erro ao abrir o arquivo."
 	}
-
-	defer func() {
-		if err := file.Close(); err != nil {
-			log.Fatal("Houve um erro ao fechar o arquivo: ", err)
-		}
-	}()
 
 	rows, err := file.GetRows("Painel de Navegação")
 
 	if err != nil {
-		log.Fatal("Houve um erro ao carregar as informações do seu arquivo: ", err)
+		return nil, nil, "Houve um erro ao carregar as informações do arquivo."
 	}
 
-	return rows, file
+	if err := file.Close(); err != nil {
+		return nil, nil, "Houve um erro ao fechar o arquivo."
+	}
+
+	return rows, file, ""
 }
 
-func GenerateSQL(allow bool, rows [][]string, descriptionIndex int, idNavigationPlan int, file *excelize.File) {
+func GenerateSQL(allow bool, rows [][]string, descriptionIndex int, idNavigationPlan int, file *excelize.File) string {
+	query := ""
+
 	for i, row := range rows {
 		var navigation Navigation
 
@@ -92,11 +97,15 @@ func GenerateSQL(allow bool, rows [][]string, descriptionIndex int, idNavigation
 		}
 
 		if allow && i > descriptionIndex {
-			fmt.Printf("insert into SysConfiguration..NavigationDetail (IdNavigationPlan, IndexValue, Description, Indexfather, ItemOrder, DispositionId) values (%d, '%s', '%s', %s, %d, %d);", navigation.IdNavigationPlan, navigation.IndexValue, navigation.Description, navigation.IndexFather, navigation.ItemOrder, navigation.DispositionId)
+			query += fmt.Sprintf("insert into SysConfiguration..NavigationDetail (IdNavigationPlan, IndexValue, Description, Indexfather, ItemOrder, DispositionId) values (%d, '%s', '%s', %s, %d, %d);", navigation.IdNavigationPlan, navigation.IndexValue, navigation.Description, navigation.IndexFather, navigation.ItemOrder, navigation.DispositionId)
 		}
 
 		if allow && i > descriptionIndex && i < len(rows)-1 {
-			fmt.Println()
+			query += "\n"
 		}
 	}
+
+	fmt.Println(query)
+
+	return query
 }

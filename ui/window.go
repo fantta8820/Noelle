@@ -5,8 +5,11 @@ import (
 	// "log"
 	// "strconv"
 
+	"NavigationPlanGenerator/script"
 	"fmt"
+	"log"
 	"path/filepath"
+	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -15,6 +18,7 @@ import (
 
 	"image/color"
 
+	"NavigationPlanGenerator/assets"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
@@ -24,7 +28,15 @@ func Run() {
 	app := app.New()
 	window := app.NewWindow("Noelle")
 
+	window.SetIcon(
+		fyne.NewStaticResource(
+			"snowflake.png",
+			assets.IconData,
+		),
+	)
+
 	window.Resize(fyne.NewSize(600, 600))
+	window.SetFixedSize(true)
 
 	title := canvas.NewText("Gerador de Plano de Navegação", color.White)
 	title.TextSize = 24
@@ -64,20 +76,27 @@ func Run() {
 		dialog.Show()
 	})
 
-	generateButton := widget.NewButton("Gerar plano", func() {
+	queryText := widget.NewMultiLineEntry()
+	queryText.SetPlaceHolder("Esperando resultado.")
 
+	generateButton := widget.NewButton("Gerar Plano de Navegação", func() {
+		num, err := strconv.Atoi(input.Text)
+
+		if err != nil {
+			log.Fatalf("Erro")
+		}
+
+		query, err := script.RunScript(path, num)
+
+		if err != nil {
+			queryText.SetText(err.Error())
+			return
+		}
+
+		queryText.SetText(query)
 	})
 
 	generateButton.Importance = widget.HighImportance
-	// button := widget.NewButton("Gerar", func() {
-	// 	num, err := strconv.Atoi(input.Text)
-
-	// 	if err != nil {
-	// 		log.Fatalf("Erro ao converter")
-	// 	}
-
-	// 	script.RunScript("NavigationPlan/MLGOMES_AD_MLGOMES_COBRANÇA_HONDA_Painel de Navegação_v1.0.xlsx", num)
-	// })
 
 	paddingTitle := canvas.NewRectangle(color.Transparent)
 	paddingTitle.SetMinSize(fyne.NewSize(0, 20))
@@ -85,7 +104,7 @@ func Run() {
 	paddingInput := canvas.NewRectangle(color.Transparent)
 	paddingInput.SetMinSize(fyne.NewSize(0, 0))
 
-	contentGrid := container.NewGridWrap(fyne.NewSize(550, 40), input, dialogButton, generateButton)
+	contentGrid := container.NewGridWrap(fyne.NewSize(550, 40), input, dialogButton, generateButton, paddingTitle, container.NewGridWrap(fyne.NewSize(550, 300), queryText))
 
 	content := container.NewVBox(paddingTitle, title, paddingTitle, container.NewCenter(contentGrid))
 
