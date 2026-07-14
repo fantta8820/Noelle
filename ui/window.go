@@ -1,10 +1,7 @@
 package ui
 
 import (
-	// "NavigationPlanGenerator/script"
-	// "log"
-	// "strconv"
-
+	"NavigationPlanGenerator/assets"
 	"NavigationPlanGenerator/script"
 	"fmt"
 	"path/filepath"
@@ -14,16 +11,13 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/storage"
-
-	"image/color"
-
-	"NavigationPlanGenerator/assets"
-
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
+
+	"image/color"	
 )
 
 func Run() {
@@ -121,10 +115,6 @@ func Run() {
 	contentGrid := container.NewGridWrap(fyne.NewSize(550, 40), navigationPlanNameInput, campaignIdInput, dialogButton, generateButton, paddingTitle, container.NewGridWrap(fyne.NewSize(550, 250), queryText))
 
 	content := container.NewVBox(paddingTitle, title, paddingTitle, container.NewCenter(contentGrid))
-
-	// text := canvas.NewText("Text object", color.White)
-	// text.Alignment = fyne.TextAlignCenter
-	// text.TextStyle = fyne.TextStyle{Italic: true}
 
 	window.SetContent(content)
 
