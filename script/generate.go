@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/xuri/excelize/v2"
 )
 
 type Navigation struct {
-	IdNavigationPlan int
+	IdNavigationPlan string
 	IndexValue       string
 	Description      string
 	IndexFather      string
@@ -17,8 +18,8 @@ type Navigation struct {
 	DispositionId    int
 }
 
-func RunScript(path string, idNavigationPlan int) (string, error) {
-	rows, file, err := OpenFile(path)
+func RunScript(path string, navigationPlanName string, campaignId int) (string, error) {
+	rows, file, err := OpenFile(path)	
 
 	if err != "" {
 		return "", errors.New(err)
@@ -27,7 +28,7 @@ func RunScript(path string, idNavigationPlan int) (string, error) {
 	allow := false
 	descriptionIndex := 0
 
-	return GenerateSQL(allow, rows, descriptionIndex, idNavigationPlan, file), nil
+	return GenerateSQL(allow, rows, descriptionIndex, navigationPlanName, campaignId, file), nil
 }
 
 func OpenFile(path string) ([][]string, *excelize.File, string) {
@@ -50,8 +51,15 @@ func OpenFile(path string) ([][]string, *excelize.File, string) {
 	return rows, file, ""
 }
 
-func GenerateSQL(allow bool, rows [][]string, descriptionIndex int, idNavigationPlan int, file *excelize.File) string {
-	query := ""
+func GenerateSQL(allow bool, rows [][]string, descriptionIndex int, navigationPlanName string, campaignId int, file *excelize.File) string {
+	query := `DECLARE @IdNavigationPlan int;
+BEGIN TRY
+	BEGIN TRANSACTION
+		select top 1 @IdNavigationPlan = (IdNavigationPlan + 1) from SysConfiguration..NavigationPlan with(nolock) order by IdNavigationPlan desc;
+		insert into SysConfiguration..NavigationPlan (IdNavigationPlan, Name, LastUpdateUserId, LastUpdate, IsActive, InsertDate) values(@IdNavigationPlan, '{Name}', 1, GETDATE(), 1, GETDATE())
+		insert into SysConfiguration..NavigationPlanCampaign values({CampaignId}, @IdNavigationPlan);
+
+`
 
 	for i, row := range rows {
 		var navigation Navigation
@@ -62,7 +70,7 @@ func GenerateSQL(allow bool, rows [][]string, descriptionIndex int, idNavigation
 			if allow {
 				switch j {
 				case 1:
-					navigation.IdNavigationPlan = idNavigationPlan
+					navigation.IdNavigationPlan = "@IdNavigationPlan"
 					navigation.Description = row[j]
 				case 2:
 					navigation.IndexValue = row[j]
@@ -97,7 +105,7 @@ func GenerateSQL(allow bool, rows [][]string, descriptionIndex int, idNavigation
 		}
 
 		if allow && i > descriptionIndex {
-			query += fmt.Sprintf("insert into SysConfiguration..NavigationDetail (IdNavigationPlan, IndexValue, Description, Indexfather, ItemOrder, DispositionId) values (%d, '%s', '%s', %s, %d, %d);", navigation.IdNavigationPlan, navigation.IndexValue, navigation.Description, navigation.IndexFather, navigation.ItemOrder, navigation.DispositionId)
+			query += fmt.Sprintf("		insert into SysConfiguration..NavigationDetail (IdNavigationPlan, IndexValue, Description, Indexfather, ItemOrder, DispositionId) values (%s, '%s', '%s', %s, %d, %d);", navigation.IdNavigationPlan, navigation.IndexValue, navigation.Description, navigation.IndexFather, navigation.ItemOrder, navigation.DispositionId)
 		}
 
 		if allow && i > descriptionIndex && i < len(rows)-1 {
@@ -105,7 +113,15 @@ func GenerateSQL(allow bool, rows [][]string, descriptionIndex int, idNavigation
 		}
 	}
 
-	fmt.Println(query)
+	query += `COMMIT;
+END TRY
+BEGIN CATCH
+	ROLLBACK;
+	THROW;
+END CATCH;`
+
+	query = strings.ReplaceAll(query, "{Name}", navigationPlanName)
+	query = strings.ReplaceAll(query, "{CampaignId}", strconv.Itoa(campaignId))
 
 	return query
 }

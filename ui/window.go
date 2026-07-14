@@ -7,9 +7,10 @@ import (
 
 	"NavigationPlanGenerator/script"
 	"fmt"
-	"log"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"unicode"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -19,6 +20,7 @@ import (
 	"image/color"
 
 	"NavigationPlanGenerator/assets"
+
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
@@ -43,9 +45,25 @@ func Run() {
 	title.TextStyle = fyne.TextStyle{Bold: true}
 	title.Alignment = fyne.TextAlignCenter
 
-	input := widget.NewEntry()
-	//input.Alignment = fyne.TextAlignCenter
-	input.SetPlaceHolder("Insira o nome do plano de navegação")
+	navigationPlanNameInput := widget.NewEntry()
+	navigationPlanNameInput.SetPlaceHolder("Insira o nome do plano de navegação")
+
+	campaignIdInput := widget.NewEntry()
+	campaignIdInput.SetPlaceHolder("Insira o ID da campanha")
+
+	campaignIdInput.OnChanged = func(s string) {
+		var numbers strings.Builder
+
+		for _, r := range s {
+			if unicode.IsDigit(r) {
+				numbers.WriteRune(r)
+			}
+		}
+
+		if numbers.String() != s {
+			campaignIdInput.SetText(numbers.String())
+		}
+	}
 
 	path := ""
 
@@ -80,13 +98,9 @@ func Run() {
 	queryText.SetPlaceHolder("Esperando resultado.")
 
 	generateButton := widget.NewButton("Gerar Plano de Navegação", func() {
-		num, err := strconv.Atoi(input.Text)
+		id, err := strconv.Atoi(campaignIdInput.Text)
 
-		if err != nil {
-			log.Fatalf("Erro")
-		}
-
-		query, err := script.RunScript(path, num)
+		query, err := script.RunScript(path, navigationPlanNameInput.Text, id)
 
 		if err != nil {
 			queryText.SetText(err.Error())
@@ -104,7 +118,7 @@ func Run() {
 	paddingInput := canvas.NewRectangle(color.Transparent)
 	paddingInput.SetMinSize(fyne.NewSize(0, 0))
 
-	contentGrid := container.NewGridWrap(fyne.NewSize(550, 40), input, dialogButton, generateButton, paddingTitle, container.NewGridWrap(fyne.NewSize(550, 300), queryText))
+	contentGrid := container.NewGridWrap(fyne.NewSize(550, 40), navigationPlanNameInput, campaignIdInput, dialogButton, generateButton, paddingTitle, container.NewGridWrap(fyne.NewSize(550, 250), queryText))
 
 	content := container.NewVBox(paddingTitle, title, paddingTitle, container.NewCenter(contentGrid))
 
