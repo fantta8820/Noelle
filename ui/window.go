@@ -32,7 +32,6 @@ func Run() {
 	)
 
 	window.Resize(fyne.NewSize(600, 600))
-	window.SetFixedSize(true)
 
 	title := canvas.NewText("Gerador de Plano de Navegação", color.White)
 	title.TextSize = 24

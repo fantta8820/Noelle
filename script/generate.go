@@ -19,7 +19,7 @@ type Navigation struct {
 }
 
 func RunScript(path string, navigationPlanName string, campaignId int) (string, error) {
-	rows, file, err := OpenFile(path)	
+	rows, file, err := OpenFile(path)
 
 	if err != "" {
 		return "", errors.New(err)
@@ -73,7 +73,11 @@ BEGIN TRY
 					navigation.IdNavigationPlan = "@IdNavigationPlan"
 					navigation.Description = row[j]
 				case 2:
-					navigation.IndexValue = row[j]
+					if len(row[j]) < 2 {
+						navigation.IndexValue = fmt.Sprintf("0%s", row[j])
+					} else {
+						navigation.IndexValue = row[j]
+					}
 				case 3:
 					if row[j] == "-" {
 						navigation.IndexFather = "Null"
@@ -113,7 +117,8 @@ BEGIN TRY
 		}
 	}
 
-	query += `COMMIT;
+	query += `
+	COMMIT;
 END TRY
 BEGIN CATCH
 	ROLLBACK;
